@@ -44,6 +44,7 @@ app.post('/api/update', async (req, res) => {
 
   const browser = await puppeteer.launch({
     headless: 'new',
+    timeout: 0,
   })
 
   try {

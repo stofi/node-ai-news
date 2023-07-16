@@ -9,6 +9,7 @@ export async function getContent(url: string, browser: Browser) {
 
   const page = await browser.newPage()
   log(`Page created`)
+  await page.setDefaultNavigationTimeout(0)
   await page.goto(url, { waitUntil: 'domcontentloaded' })
   log(`Page loaded`)
 

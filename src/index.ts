@@ -1,37 +1,60 @@
 import dotenv from 'dotenv'
 dotenv.config()
-// An express server serves one endpoint
-// GET /api/last-post
-// Returns the most recent post published within the last hour
-// If there is none it runs and gets the most recent post again
-// If there is none it returns an string saying so
 import bot from './bot'
-import { getMostRecentPublishedPostFromWithinLastHour } from './database'
+import {
+  getMostRecentPublishedPostFromWithinLastHour,
+  getMostRecentPublishedPost,
+} from './database'
 import express from 'express'
+import puppeteer, { Browser } from 'puppeteer'
+import { log } from './log'
 
 const app = express()
 app.use(express.json())
 
+const MY_SECRET = process.env.MY_SECRET
+
+if (!MY_SECRET) throw new Error('Missing MY_SECRET env var')
+
 app.get('/api/last-post', async (req, res) => {
-  try {
-    let mostRecentPost = await getMostRecentPublishedPostFromWithinLastHour()
+  const mostRecentPost = await getMostRecentPublishedPostFromWithinLastHour()
 
-    // If no post found, try once again
-    if (!mostRecentPost) {
-      await bot()
-      mostRecentPost = await getMostRecentPublishedPostFromWithinLastHour()
-    }
-
-    // If still no post found, return a string message
-    if (!mostRecentPost) {
-      res.json({ message: 'No posts published within the last hour' })
-    } else {
-      res.json(mostRecentPost)
-    }
-  } catch (error) {
-    console.error(`Error: ${error}`)
-    res.status(500).json({ message: 'Server Error' })
+  if (mostRecentPost) {
+    res.json(mostRecentPost)
+    return
   }
+
+  const mostRecentPostFromDatabase = await getMostRecentPublishedPost()
+  if (mostRecentPostFromDatabase) {
+    res.json(mostRecentPostFromDatabase)
+    return
+  }
+
+  res.json(null)
+})
+
+app.post('/api/update', async (req, res) => {
+  // check authorization header
+  const secret = req.headers.authorization?.split(' ')[1]
+  console.log(secret)
+  if (secret !== MY_SECRET) {
+    res.status(401).json({ error: 'Unauthorized' })
+    return
+  }
+
+  const browser = await puppeteer.launch({
+    headless: 'new',
+  })
+
+  try {
+    await bot(browser)
+  } catch (e) {
+    console.error(e)
+  }
+
+  await browser.close()
+
+  res.json({ success: true })
 })
 
 const port = process.env.PORT || 3000

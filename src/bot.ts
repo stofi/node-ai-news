@@ -8,15 +8,16 @@ import {
   writingStyleFormal,
 } from './gpt'
 import { log } from './log'
+import { Browser } from 'puppeteer'
 
-const bot = async () => {
+const bot = async (browser: Browser) => {
   log('Bot started')
   const sources = await getSources()
 
   log(`Got ${sources.length} sources`)
 
   const contentRequests = sources.map((source) => {
-    return getContent(source.url)
+    return getContent(source.url, browser)
   })
 
   const contents = await Promise.all(contentRequests)

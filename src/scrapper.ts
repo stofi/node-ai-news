@@ -4,14 +4,12 @@ import { Readability } from '@mozilla/readability'
 import { JSDOM } from 'jsdom'
 import { log } from './log'
 
-export async function getContent(url: string) {
+export async function getContent(url: string, browser: Browser) {
   log(`Getting content from ${url}`)
-  const browser = await puppeteer.launch({
-    headless: 'new',
-  })
+
   const page = await browser.newPage()
   log(`Page created`)
-  await page.goto(url, { waitUntil: 'networkidle2' })
+  await page.goto(url, { waitUntil: 'domcontentloaded' })
   log(`Page loaded`)
 
   const content = await page.evaluate(() => document.body.innerHTML)
@@ -23,13 +21,10 @@ export async function getContent(url: string) {
     const article = reader.parse()
     log(`Content parsed`)
     log(`Content title: ${article?.title ?? 'No title'}`)
-    await browser.close()
+
     return article
   } catch (e) {
     console.error(e)
     log(`Error parsing content`)
   }
-
-  await browser.close()
-  log(`Browser closed`)
 }

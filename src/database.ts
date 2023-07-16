@@ -19,6 +19,21 @@ export const getMostRecentPublishedPost = async () => {
   })
   return post
 }
+export const getMostRecentPublishedPostFromWithinLastHour = async () => {
+  log('Getting most recent published post from within last hour')
+  const post = await prisma.post.findFirst({
+    where: {
+      published: true,
+      createdAt: {
+        gt: new Date(Date.now() - 1000 * 60 * 60),
+      },
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+  })
+  return post
+}
 
 export const createSource = async (data: { name: string; url: string }) => {
   log(`Creating source ${data.name}`)
